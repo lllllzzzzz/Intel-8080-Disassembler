@@ -11,16 +11,18 @@
 #include <stdio.h>
 #include <ctype.h>
 
-#define OUTPUT_BUFFER_SIZE  64
+#define FILENAME_BUFFER_SIZE 260
+#define OUTPUT_BUFFER_SIZE   64
 
 int main(int argc, char* argv[])
 {
     if (argc < 2 || argc > 4) {
-        char tmp[260] = {0};
+        // Get filename of program, excluding path
+        char tmp[FILENAME_BUFFER_SIZE] = {0};
         for (int i = 0, j = strlen(argv[0]) - 1; argv[0][j] != '\\'; i++, j--) {
             tmp[i] = argv[0][j];
         }
-        char exe_filename[260] = {0};
+        char exe_filename[FILENAME_BUFFER_SIZE] = {0};
     //    char* exe_filename = (char*) malloc(strlen(tmp) * sizeof (char));
         for (int i = 0, j = strlen(tmp) - 1; j >= 0; i++, j--) {
             exe_filename[i] = tmp[j];

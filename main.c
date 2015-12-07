@@ -4,15 +4,16 @@
  *
  *  Compile: gcc -std=gnu99
  */
-
+ 
 
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
 
-#define FILENAME_BUFFER_SIZE 260
-#define OUTPUT_BUFFER_SIZE   64
+#define FILENAME_BUFFER_SIZE  260
+#define MNEMONICS_BUFFER_SIZE 100
+#define OUTPUT_BUFFER_SIZE    64
 
 int main(int argc, char* argv[])
 {
@@ -23,7 +24,6 @@ int main(int argc, char* argv[])
             tmp[i] = argv[0][j];
         }
         char exe_filename[FILENAME_BUFFER_SIZE] = {0};
-    //    char* exe_filename = (char*) malloc(strlen(tmp) * sizeof (char));
         for (int i = 0, j = strlen(tmp) - 1; j >= 0; i++, j--) {
             exe_filename[i] = tmp[j];
         }
@@ -36,7 +36,6 @@ Arguments:\n\
   -h    print addresses in hexadecimal\n\
   -d    print addresses in decimal", exe_filename);
 
-//        free(exe_filename);
         return EXIT_FAILURE;
     }
 
@@ -47,7 +46,7 @@ Arguments:\n\
 
     /* Parse command-line arguments */
     for (int i = 0; i < argc; i++) {
-        if(argv[i][0] == '-') {
+        if (argv[i][0] == '-') {
             switch (toupper(argv[i][1])) {
                 case 'U':
                     letter_case = UPPER_CASE;   /* upper case mnemonics */
@@ -71,7 +70,6 @@ Arguments:\n\
     }
 
     FILE* input_file = fopen(argv[1], "rb");
-
     if (!input_file) {
         fprintf(stderr, "Error: cannot open input file");
         return EXIT_FAILURE;
@@ -87,24 +85,15 @@ Arguments:\n\
     }
 
     rewind(input_file);
-
-    unsigned char *input_buf = (unsigned char*) malloc(file_size * sizeof (unsigned char));
-
+    
+    unsigned char *input_buf = (unsigned char*) malloc(file_size * sizeof(unsigned char));
     if (!input_buf) {
         fclose(input_file);
         fprintf(stderr, "Error: cannot allocate buffer");
         return EXIT_FAILURE;
     }
 
-    /*size_t bytes_read = */fread(input_buf, file_size, sizeof (unsigned char), input_file);
-//    printf("%d", bytes_read);
-//    if (bytes_read != file_size) {
-//        fclose(input_file);
-//        free(buf);
-//        fprintf(stderr, "Error: cannot read input file");
-//        return EXIT_FAILURE;
-//    }
-
+    fread(input_buf, file_size, sizeof(unsigned char), input_file);
     fclose(input_file);
 
     const char *mnemonics_upper_case[0x100] =
@@ -147,15 +136,13 @@ Arguments:\n\
      /*f*/"rp",      "poppsw",  "jp",      "di",      "cp",      "push psw", "ori",     "rst 6",   "cm",      "sphl",    "jm",      "ei",      "cm",      "illegal", "cpi",     "rst 7"
     };
 
-    const char* mnemonics[100];
+    const char* mnemonics[MNEMONICS_BUFFER_SIZE];
 
     if (letter_case == UPPER_CASE) {
-        memcpy(mnemonics, mnemonics_upper_case, sizeof (mnemonics_upper_case));
+        memcpy(mnemonics, mnemonics_upper_case, sizeof(mnemonics_upper_case));
     } else if (letter_case == LOWER_CASE) {
-        memcpy(mnemonics, mnemonics_lower_case, sizeof (mnemonics_lower_case));
+        memcpy(mnemonics, mnemonics_lower_case, sizeof(mnemonics_lower_case));
     }
-
-    // const char** mnemonics = (const char**) malloc(sizeof (mnemonics_upper_case) * sizeof (const char));
 
     const int op_bytes[0x100] =
     {/*   0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F*/
@@ -177,29 +164,19 @@ Arguments:\n\
      /*F*/1, 1, 3, 1, 3, 1, 2, 1, 1, 1, 3, 1, 3, 3, 2, 1
     };
 
-//    FILE* output_file = fopen("output.txt", "w");
-//
-//    printf("Intel 8080 Disassembler by Luke Zimmerer\n");
-//    printf("----------------------------------------\n");
-//    printf("Filename: %s\n", argv[1]);
-//    printf("Size: %lu bytes\n\n", file_size);
+    int pc = 0;
+    int op;
 
-    int pc = 0, op;
-//    char output_buf[OUTPUT_BUFFER_SIZE];
-
-    while(pc < file_size)
-    {
+    while (pc < file_size) {
         op = input_buf[pc];
 
-        if(mnemonics_only == 0) {
+        if (mnemonics_only == 0) {
             if (addr_base == HEXADECIMAL) {
                 printf("%04X: ", pc);
             } else if (addr_base == DECIMAL) {
                 printf("%d: ", pc);
             }
         }
-
-//        sprintf(output_buf, "%s", mnemonics[op]);
 
         if(mnemonics_only == 0) {
             if (op_bytes[op] == 1) {
@@ -220,7 +197,6 @@ Arguments:\n\
     }
 
     free(input_buf);
-//    fclose(output_file);
 
     return EXIT_SUCCESS;
 }

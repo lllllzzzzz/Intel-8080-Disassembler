@@ -117,7 +117,7 @@ Arguments:\n\
     };
 
     const char *mnemonics_lower_case[0x100] =
-    {/*   0          1          2          3          4          5           6          7          8          9          a          b          c          d          e          f       */
+    {/*   0          1          2          3          4          5           6          7          8          9          A          b          c          d          e          f       */
      /*0*/"nop",     "lxi b",   "stax b",  "inx b",   "inr b",   "dcr b",    "mvi b",   "rlc",     "illegal", "dad b",   "ldax b",  "dcx b",   "inr c",   "dcr c",   "mvi c",   "rrc",
      /*1*/"illegal", "lxi d",   "stax d",  "inx d",   "inr d",   "dcr d",    "mvi d",   "ral",     "illegal", "dad d",   "ldax d",  "dcx d",   "inr e",   "dcr e",   "mvi e",   "rar",
      /*2*/"illegal", "lxi h",   "shld",    "inx h",   "inr h",   "dcr h",    "mvi h",   "daa",     "illegal", "dad h",   "lhld",    "dcx h",   "inr l",   "dcr l",   "mvi l",   "cma",

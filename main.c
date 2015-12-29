@@ -69,27 +69,27 @@ Arguments:\n\
         }
     }
 
-    FILE* input_file = fopen(argv[1], "rb");
-    if (!input_file) {
-        fprintf(stderr, "Error: cannot open input file");
+    FILE* input_file;
+    if (!(input_file = fopen(argv[1], "rb"))) {
+        fprintf(stderr, "Error: cannot open input file\n");
         return EXIT_FAILURE;
     }
 
     fseek(input_file, 0, SEEK_END);
     long file_size = ftell(input_file);
 
-    if (file_size == 0) {
+    if (!file_size) {
         fclose(input_file);
-        fprintf(stderr, "Error: input file is 0 bytes");
+        fprintf(stderr, "Error: input file is 0 bytes\n");
         return EXIT_FAILURE;
     }
 
     rewind(input_file);
     
-    unsigned char *input_buf = (unsigned char*) malloc(file_size * sizeof(unsigned char));
+    unsigned char *input_buf = calloc(file_size, sizeof(*input_buf));
     if (!input_buf) {
         fclose(input_file);
-        fprintf(stderr, "Error: cannot allocate buffer");
+        fprintf(stderr, "Error: cannot allocate buffer\n");
         return EXIT_FAILURE;
     }
 
@@ -164,13 +164,12 @@ Arguments:\n\
      /*F*/1, 1, 3, 1, 3, 1, 2, 1, 1, 1, 3, 1, 3, 3, 2, 1
     };
 
-    int pc = 0;
-    int op;
+    int pc, op;
 
-    while (pc < file_size) {
+    for (pc = 0; pc < file_size; pc += op_bytes[op]) {
         op = input_buf[pc];
 
-        if (mnemonics_only == 0) {
+        if (!mnemonics_only) {
             if (addr_base == HEXADECIMAL) {
                 printf("%04X: ", pc);
             } else if (addr_base == DECIMAL) {
@@ -178,7 +177,7 @@ Arguments:\n\
             }
         }
 
-        if(mnemonics_only == 0) {
+        if(!mnemonics_only) {
             if (op_bytes[op] == 1) {
                 printf("%02X\t\t%s\n", op, mnemonics[op]);
             } else if (op_bytes[op] == 2) {
@@ -192,11 +191,8 @@ Arguments:\n\
         } else {
             printf("%s\n", mnemonics[op]);
         }
-
-        pc += op_bytes[op];
     }
 
     free(input_buf);
-
     return EXIT_SUCCESS;
 }

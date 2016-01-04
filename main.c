@@ -39,23 +39,12 @@ Arguments:\n\
     for (int i = 0; i < argc; i++) {
         if (argv[i][0] == '-') {
             switch (toupper(argv[i][1])) {
-                case 'U':
-                    letter_case = UPPER_CASE;   /* upper case mnemonics */
-                    break;
-                case 'L':
-                    letter_case = LOWER_CASE;   /* lower case mnemonics */
-                    break;
-                case 'H':
-                    addr_base = HEXADECIMAL;    /* hexadecimal addresses */
-                    break;
-                case 'D':
-                    addr_base = DECIMAL;        /* decimal addresses */
-                    break;
-                case 'M':
-                    mnemonics_only = 1;         /* only print mnemonics */
-                    break;
-                default:
-                    break;
+                case 'U': letter_case = UPPER_CASE; break;
+                case 'L': letter_case = LOWER_CASE; break;
+                case 'H': addr_base = HEXADECIMAL;  break;
+                case 'D': addr_base = DECIMAL;      break;
+                case 'M': mnemonics_only = 1;       break;
+                default:                            break;
             }
         }
     }

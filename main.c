@@ -14,28 +14,19 @@
 #define FILENAME_BUFFER_SIZE  260
 #define MNEMONICS_BUFFER_SIZE 100
 #define OUTPUT_BUFFER_SIZE    64
+#define MIN_GOOD_ARGS         2
+#define MAX_GOOD_ARGS         4
 
 int main(int argc, char* argv[])
 {
-    if (argc < 2 || argc > 4) {
-        // Get filename of program, excluding path
-        char tmp[FILENAME_BUFFER_SIZE] = {0};
-        for (int i = 0, j = strlen(argv[0]) - 1; argv[0][j] != '\\'; i++, j--) {
-            tmp[i] = argv[0][j];
-        }
-        char exe_filename[FILENAME_BUFFER_SIZE] = {0};
-        for (int i = 0, j = strlen(tmp) - 1; j >= 0; i++, j--) {
-            exe_filename[i] = tmp[j];
-        }
-
+    if (argc < MIN_GOOD_ARGS || argc > MAX_GOOD_ARGS) {
         printf("Intel 8080 Disassembler\n2015 Luke Zimmerer\n\n\
 Usage: %s [-ulhd] file...\n\n\
 Arguments:\n\
   -u    print mnemonics in upper case\n\
   -l    print mnemonics in lower case\n\
   -h    print addresses in hexadecimal\n\
-  -d    print addresses in decimal", exe_filename);
-
+  -d    print addresses in decimal", argv[0]);
         return EXIT_FAILURE;
     }
 

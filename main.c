@@ -4,7 +4,7 @@
  *
  *  Compile: gcc -std=gnu99
  */
- 
+
 
 #include <string.h>
 #include <stdlib.h>
@@ -36,7 +36,8 @@ Arguments:\n\
     int mnemonics_only = 0;
 
     /* Parse command-line arguments */
-    for (int i = 0; i < argc; i++) {
+    int i;
+    for (i = 0; i < argc; i++) {
         if (argv[i][0] == '-') {
             switch (toupper(argv[i][1])) {
                 case 'U': letter_case    = UPPER_CASE;   break;
@@ -65,7 +66,7 @@ Arguments:\n\
     }
 
     rewind(input_file);
-    
+
     unsigned char *input_buf = calloc(file_size, sizeof(*input_buf));
     if (!input_buf) {
         fclose(input_file);
@@ -73,7 +74,7 @@ Arguments:\n\
         return EXIT_FAILURE;
     }
 
-    fread(input_buf, file_size, sizeof(unsigned char), input_file);
+    fread(input_buf, file_size, 1, input_file);
     fclose(input_file);
 
     const char *mnemonics_upper_case[0x100] =
@@ -144,33 +145,30 @@ Arguments:\n\
      /*F*/1, 1, 3, 1, 3, 1, 2, 1, 1, 1, 3, 1, 3, 3, 2, 1
     };
 
-    int pc, op;
-
-    for (pc = 0; pc < file_size; pc += op_bytes[op]) {
-        op = input_buf[pc];
+    int pc = 0;
+    while (pc < file_size) {
+        int op = input_buf[pc];
 
         if (!mnemonics_only) {
-            if (addr_base == HEXADECIMAL) {
-                printf("%04X: ", pc);
-            } else if (addr_base == DECIMAL) {
-                printf("%d: ", pc);
-            }
+            printf("%s: ", (addr_base == HEXADECIMAL) ? "%04X" : "%d", pc);
         }
 
-        if(!mnemonics_only) {
+        if (!mnemonics_only) {
             if (op_bytes[op] == 1) {
                 printf("%02X\t\t%s\n", op, mnemonics[op]);
             } else if (op_bytes[op] == 2) {
-                printf("%02X %02X\t\t%s %02X\n", op, input_buf[pc + 1], 
+                printf("%02X %02X\t\t%s %02X\n", op, input_buf[pc + 1],
                         mnemonics[op], input_buf[pc + 2]);
             } else if (op_bytes[op] == 3) {
-                printf("%02X %02X %02X\t%s %04X\n", op, input_buf[pc + 1], 
-                        input_buf[pc + 2], mnemonics[op], input_buf[pc + 1] | 
+                printf("%02X %02X %02X\t%s %04X\n", op, input_buf[pc + 1],
+                        input_buf[pc + 2], mnemonics[op], input_buf[pc + 1] |
                         (input_buf[pc + 2] << 8));
             }
         } else {
             printf("%s\n", mnemonics[op]);
         }
+
+        pc += op_bytes[op];
     }
 
     free(input_buf);

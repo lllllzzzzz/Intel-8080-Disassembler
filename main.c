@@ -2,10 +2,9 @@
  *  Intel 8080 disassembler. Luke Zimmerer, 2016.
  */
 
-#include <string.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 #define FILENAME_BUFFER_SIZE  260
@@ -74,7 +73,6 @@ static char* read_file(char *filename, unsigned file_size)
 
     FILE *input_file = fopen(filename, "rb");
     assert(input_file);
-
     rewind(input_file);
 
     char *file_buffer = calloc(file_size, sizeof(*file_buffer));
@@ -94,7 +92,7 @@ static char* read_file(char *filename, unsigned file_size)
 static void disassemble(char *file_buffer, unsigned file_size)
 {
     assert(file_buffer);
-    assert(file_size);
+    assert(file_size > 0);
 
     // Mnemonics for all 8080 opcodes
     const char *mnemonics[0x100] =
@@ -142,6 +140,7 @@ static void disassemble(char *file_buffer, unsigned file_size)
     int pc = 0;
     while (pc < file_size) {
         int opcode = file_buffer[pc];
+        
         if (opcode_bytes[opcode] == 1) {
             printf("%02X\t\t%s\n", opcode, mnemonics[opcode]);
         } else if (opcode_bytes[opcode] == 2) {

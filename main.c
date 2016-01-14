@@ -138,7 +138,7 @@ static void disassemble(char *file_buffer, unsigned file_size)
      /*F*/1, 1, 3, 1, 3, 1, 2, 1, 1, 1, 3, 1, 3, 3, 2, 1
     };
 
-    // Print mnemonics AND machine code
+    // Disassembly loop
     int pc = 0;
     while (pc < file_size) {
         int opcode = file_buffer[pc];

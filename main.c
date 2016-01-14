@@ -1,103 +1,103 @@
 /*
- *  Intel 8080 disassembler written in C.
- *  Author: Luke Zimmerer
- *
- *  Compile: gcc -std=gnu99
+ *  Intel 8080 disassembler. Luke Zimmerer, 2016.
  */
-
 
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <assert.h>
 
 #define FILENAME_BUFFER_SIZE  260
 #define MNEMONICS_BUFFER_SIZE 100
 #define OUTPUT_BUFFER_SIZE    64
-#define MIN_GOOD_ARGS         2
-#define MAX_GOOD_ARGS         4
+#define NUM_GOOD_ARGS         2
+
+static unsigned get_file_size(char *filename);
+static char*    read_file(char *filename, unsigned file_size);
+static void     disassemble(char *file_buffer, unsigned file_size);
 
 int main(int argc, char* argv[])
 {
-    if (argc < MIN_GOOD_ARGS || argc > MAX_GOOD_ARGS) {
-        printf("Intel 8080 Disassembler\n2015 Luke Zimmerer\n\n\
-Usage: %s [-ulhd] file...\n\n\
-Arguments:\n\
-  -u    print mnemonics in upper case\n\
-  -l    print mnemonics in lower case\n\
-  -h    print addresses in hexadecimal\n\
-  -d    print addresses in decimal", argv[0]);
+    if (argc != NUM_GOOD_ARGS) {
+        fprintf(stderr, "Intel 8080 Disassembler by Luke Zimmerer\n\
+usage: %s filename\n", argv[0]);
         return EXIT_FAILURE;
     }
 
-    typedef enum { HEXADECIMAL, DECIMAL, UPPER_CASE, LOWER_CASE, MNEMONICS_ONLY } arg;
-    arg addr_base = HEXADECIMAL;
-    arg letter_case = LOWER_CASE;
-    int mnemonics_only = 0;
-
-    /* Parse command-line arguments */
-    int i;
-    for (i = 0; i < argc; i++) {
-        if (argv[i][0] == '-') {
-            switch (toupper(argv[i][1])) {
-                case 'U': letter_case    = UPPER_CASE;   break;
-                case 'L': letter_case    = LOWER_CASE;   break;
-                case 'H': addr_base      = HEXADECIMAL;  break;
-                case 'D': addr_base      = DECIMAL;      break;
-                case 'M': mnemonics_only = 1;            break;
-                default:                                 break;
-            }
-        }
+    char *filename = argv[1];
+    int file_size = get_file_size(filename);
+    if (file_size == EXIT_FAILURE) {
+        return EXIT_FAILURE;
     }
 
-    FILE* input_file;
-    if (!(input_file = fopen(argv[1], "rb"))) {
+    char *file_buffer = read_file(filename, file_size);
+    if (!file_buffer) {
+        return EXIT_FAILURE;
+    }
+
+    disassemble(file_buffer, file_size);
+
+    free(file_buffer);
+    return EXIT_SUCCESS;
+}
+
+// Return size of file in bytes
+static unsigned get_file_size(char *filename)
+{
+    assert(filename);
+
+    FILE *input_file = fopen(filename, "rb");
+
+    if (!input_file) {
         fprintf(stderr, "Error: cannot open input file\n");
         return EXIT_FAILURE;
     }
 
     fseek(input_file, 0, SEEK_END);
-    long file_size = ftell(input_file);
+    int file_size = ftell(input_file);
+    fclose(input_file);
 
     if (!file_size) {
-        fclose(input_file);
         fprintf(stderr, "Error: input file is 0 bytes\n");
         return EXIT_FAILURE;
     }
 
+    return file_size;
+}
+
+// Read file into buffer and return buffer
+static char* read_file(char *filename, unsigned file_size)
+{
+    assert(filename);
+    assert(file_size > 0);
+
+    FILE *input_file = fopen(filename, "rb");
+    assert(input_file);
+
     rewind(input_file);
 
-    unsigned char *input_buf = calloc(file_size, sizeof(*input_buf));
-    if (!input_buf) {
+    char *file_buffer = calloc(file_size, sizeof(*file_buffer));
+    if (!file_buffer) {
         fclose(input_file);
         fprintf(stderr, "Error: cannot allocate buffer\n");
-        return EXIT_FAILURE;
+        return NULL;
     }
 
-    fread(input_buf, file_size, 1, input_file);
+    fread(file_buffer, file_size, 1, input_file);
     fclose(input_file);
 
-    const char *mnemonics_upper_case[0x100] =
-    {/*   0          1          2          3          4          5           6          7          8          9          A          B          C          D          E          F       */
-     /*0*/"NOP",     "LXI B",   "STAX B",  "INX B",   "INR B",   "DCR B",    "MVI B",   "RLC",     "Illegal", "DAD B",   "LDAX B",  "DCX B",   "INR C",   "DCR C",   "MVI C",   "RRC",
-     /*1*/"Illegal", "LXI D",   "STAX D",  "INX D",   "INR D",   "DCR D",    "MVI D",   "RAL",     "Illegal", "DAD D",   "LDAX D",  "DCX D",   "INR E",   "DCR E",   "MVI E",   "RAR",
-     /*2*/"Illegal", "LXI H",   "SHLD",    "INX H",   "INR H",   "DCR H",    "MVI H",   "DAA",     "Illegal", "DAD H",   "LHLD",    "DCX H",   "INR L",   "DCR L",   "MVI L",   "CMA",
-     /*3*/"Illegal", "LXI SP",  "STA",     "Illegal", "INR M",   "DCR M",    "MVI M",   "STC",     "Illegal", "DAD SP",  "LDA",     "DCX SP",  "INR A",   "DCR A",   "MVI A",   "CMC",
-     /*4*/"MOV B,B", "MOV B,C", "MOV B,D", "MOV B,E", "MOV B,H", "MOV B,L",  "MOV B,M", "MOV B,A", "MOV C,B", "MOV C,C", "MOV C,D", "MOV C,E", "MOV C,H", "MOV C,L", "MOV C,M", "MOV C,A",
-     /*5*/"MOV D,B", "MOV D,C", "MOV D,D", "MOV D,E", "MOV D,H", "MOV D,L",  "MOV D,M", "MOV D,A", "MOV E,B", "MOV E,C", "MOV E,D", "MOV E,E", "MOV E,H", "MOV E,L", "MOV E,M", "MOV E,A",
-     /*6*/"MOV H,B", "MOV H,C", "MOV H,D", "MOV H,E", "MOV H,H", "MOV H,L",  "MOV H,M", "MOV H,A", "MOV L,B", "MOV L,C", "MOV L,D", "MOV L,E", "MOV L,H", "MOV L,L", "MOV L,M", "MOV L,A",
-     /*7*/"MOV M,B", "MOV M,C", "MOV M,D", "MOV M,E", "MOV M,H", "MOV M,L",  "HLT",     "MOV M,A", "MOV A,B", "MOV A,C", "MOV A,D", "MOV A,E", "MOV A,H", "MOV A,L", "MOV A,M", "MOV A,A",
-     /*8*/"ADD B",   "ADD C",   "ADD D",   "ADD E",   "ADD H",   "ADD L",    "ADD M",   "ADD A",   "ADC B",   "ADC C",   "ADC D",   "ADC E",   "ADC H",   "ADC L",   "ADC M",   "ADC A",
-     /*9*/"SUB B",   "SUB C",   "SUB D",   "SUB E",   "SUB H",   "SUB L",    "SUB M",   "SBB A",   "SBB B",   "SBB C",   "SBB D",   "SBB E",   "SBB H",   "SBB L",   "SBB M",   "SBB A",
-     /*A*/"ANA B",   "ANA C",   "ANA D",   "ANA E",   "ANA H",   "ANA L",    "ANA M",   "ANA A",   "XRA B",   "XRA C",   "XRA D",   "XRA E",   "XRA H",   "XRA L",   "XRA M",   "XRA A",
-     /*B*/"ORA B",   "ORA C",   "ORA D",   "ORA E",   "ORA H",   "ORA L",    "ORA M",   "ORA A",   "CMP B",   "CMP C",   "CMP D",   "CMP E",   "CMP H",   "CMP L",   "CMP M",   "CMP A",
-     /*C*/"RNZ",     "POP B",   "JNZ",     "JMP",     "CNZ",     "PUSH B",   "ADI",     "RST 0",   "RZ",      "RET",     "JZ",      "Illegal", "CZ",      "CALL",    "ACI",     "RST 1",
-     /*D*/"RNC",     "POP D",   "JNC",     "OUT",     "CNC",     "PUSH D",   "SUI",     "RST 2",   "RC",      "Illegal", "JC",      "IN",      "CC",      "Illegal", "SBI",     "RST 3",
-     /*E*/"RPO",     "POP H",   "JPO",     "XTHL",    "CPO",     "PUSH H",   "ANI",     "RST 4",   "RPE",     "PCHL",    "JPE",     "XCHG",    "CPE",     "Illegal", "XRI",     "RST 5",
-     /*F*/"RP",      "POPPSW",  "JP",      "DI",      "CP",      "PUSH PSW", "ORI",     "RST 6",   "CM",      "SPHL",    "JM",      "EI",      "CM",      "Illegal", "CPI",     "RST 7"
-    };
+    return file_buffer;
+}
 
-    const char *mnemonics_lower_case[0x100] =
+// Disassemble 8080 opcodes and print to stdout
+static void disassemble(char *file_buffer, unsigned file_size)
+{
+    assert(file_buffer);
+    assert(file_size);
+
+    // Mnemonics for all 8080 opcodes
+    const char *mnemonics[0x100] =
     {/*   0          1          2          3          4          5           6          7          8          9          A          b          c          d          e          f       */
      /*0*/"nop",     "lxi b",   "stax b",  "inx b",   "inr b",   "dcr b",    "mvi b",   "rlc",     "illegal", "dad b",   "ldax b",  "dcx b",   "inr c",   "dcr c",   "mvi c",   "rrc",
      /*1*/"illegal", "lxi d",   "stax d",  "inx d",   "inr d",   "dcr d",    "mvi d",   "ral",     "illegal", "dad d",   "ldax d",  "dcx d",   "inr e",   "dcr e",   "mvi e",   "rar",
@@ -117,15 +117,8 @@ Arguments:\n\
      /*f*/"rp",      "poppsw",  "jp",      "di",      "cp",      "push psw", "ori",     "rst 6",   "cm",      "sphl",    "jm",      "ei",      "cm",      "illegal", "cpi",     "rst 7"
     };
 
-    const char* mnemonics[MNEMONICS_BUFFER_SIZE];
-
-    if (letter_case == UPPER_CASE) {
-        memcpy(mnemonics, mnemonics_upper_case, sizeof(mnemonics_upper_case));
-    } else if (letter_case == LOWER_CASE) {
-        memcpy(mnemonics, mnemonics_lower_case, sizeof(mnemonics_lower_case));
-    }
-
-    const int op_bytes[0x100] =
+    // Size (in bytes) of every 8080 opcode
+    const int opcode_bytes[0x100] =
     {/*   0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F*/
      /*0*/1, 3, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
      /*1*/1, 3, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
@@ -145,32 +138,21 @@ Arguments:\n\
      /*F*/1, 1, 3, 1, 3, 1, 2, 1, 1, 1, 3, 1, 3, 3, 2, 1
     };
 
+    // Print mnemonics AND machine code
     int pc = 0;
     while (pc < file_size) {
-        int op = input_buf[pc];
-
-        if (!mnemonics_only) {
-            printf("%s: ", (addr_base == HEXADECIMAL) ? "%04X" : "%d", pc);
+        int opcode = file_buffer[pc];
+        if (opcode_bytes[opcode] == 1) {
+            printf("%02X\t\t%s\n", opcode, mnemonics[opcode]);
+        } else if (opcode_bytes[opcode] == 2) {
+            printf("%02X %02X\t\t%s %02X\n", opcode, file_buffer[pc + 1],
+                    mnemonics[opcode], file_buffer[pc + 2]);
+        } else if (opcode_bytes[opcode] == 3) {
+            printf("%02X %02X %02X\t%s %04X\n", opcode, file_buffer[pc + 1],
+                    file_buffer[pc + 2], mnemonics[opcode], file_buffer[pc + 1] |
+                    (file_buffer[pc + 2] << 8));
         }
 
-        if (!mnemonics_only) {
-            if (op_bytes[op] == 1) {
-                printf("%02X\t\t%s\n", op, mnemonics[op]);
-            } else if (op_bytes[op] == 2) {
-                printf("%02X %02X\t\t%s %02X\n", op, input_buf[pc + 1],
-                        mnemonics[op], input_buf[pc + 2]);
-            } else if (op_bytes[op] == 3) {
-                printf("%02X %02X %02X\t%s %04X\n", op, input_buf[pc + 1],
-                        input_buf[pc + 2], mnemonics[op], input_buf[pc + 1] |
-                        (input_buf[pc + 2] << 8));
-            }
-        } else {
-            printf("%s\n", mnemonics[op]);
-        }
-
-        pc += op_bytes[op];
+        pc += opcode_bytes[opcode];
     }
-
-    free(input_buf);
-    return EXIT_SUCCESS;
 }

@@ -7,14 +7,11 @@
 #include <string.h>
 #include <assert.h>
 
-#define FILENAME_BUFFER_SIZE  260
-#define MNEMONICS_BUFFER_SIZE 100
-#define OUTPUT_BUFFER_SIZE    64
-#define NUM_GOOD_ARGS         2
+#define NUM_GOOD_ARGS 2
 
 static unsigned get_file_size(char *filename);
 static char*    read_file(char *filename, unsigned file_size);
-static void     disassemble(char *file_buffer, unsigned file_size);
+static void     disassemble(char *file_buf, unsigned file_size);
 
 int main(int argc, char* argv[])
 {
@@ -30,14 +27,14 @@ usage: %s filename\n", argv[0]);
         return EXIT_FAILURE;
     }
 
-    char *file_buffer = read_file(filename, file_size);
-    if (!file_buffer) {
+    char *file_buf = read_file(filename, file_size);
+    if (!file_buf) {
         return EXIT_FAILURE;
     }
 
-    disassemble(file_buffer, file_size);
+    disassemble(file_buf, file_size);
 
-    free(file_buffer);
+    free(file_buf);
     return EXIT_SUCCESS;
 }
 
@@ -49,18 +46,13 @@ static unsigned get_file_size(char *filename)
     FILE *input_file = fopen(filename, "rb");
 
     if (!input_file) {
-        fprintf(stderr, "Error: cannot open input file\n");
+        perror("Error ");
         return EXIT_FAILURE;
     }
 
     fseek(input_file, 0, SEEK_END);
     int file_size = ftell(input_file);
     fclose(input_file);
-
-    if (!file_size) {
-        fprintf(stderr, "Error: input file is 0 bytes\n");
-        return EXIT_FAILURE;
-    }
 
     return file_size;
 }
@@ -75,23 +67,23 @@ static char* read_file(char *filename, unsigned file_size)
     assert(input_file);
     rewind(input_file);
 
-    char *file_buffer = calloc(file_size, sizeof(*file_buffer));
-    if (!file_buffer) {
+    char *file_buf = calloc(file_size, sizeof(*file_buf));
+    if (!file_buf) {
         fclose(input_file);
         fprintf(stderr, "Error: cannot allocate buffer\n");
         return NULL;
     }
 
-    fread(file_buffer, file_size, 1, input_file);
+    fread(file_buf, file_size, 1, input_file);
     fclose(input_file);
 
-    return file_buffer;
+    return file_buf;
 }
 
 // Disassemble 8080 opcodes and print to stdout
-static void disassemble(char *file_buffer, unsigned file_size)
+static void disassemble(char *file_buf, unsigned file_size)
 {
-    assert(file_buffer);
+    assert(file_buf);
     assert(file_size > 0);
 
     // Mnemonics for all 8080 opcodes
@@ -136,20 +128,30 @@ static void disassemble(char *file_buffer, unsigned file_size)
      /*F*/1, 1, 3, 1, 3, 1, 2, 1, 1, 1, 3, 1, 3, 3, 2, 1
     };
 
+    #define ONE_BYTE    1
+    #define TWO_BYTES   2
+    #define THREE_BYTES 3
+
     // Disassembly loop
     int pc = 0;
     while (pc < file_size) {
-        int opcode = file_buffer[pc];
-        
-        if (opcode_bytes[opcode] == 1) {
-            printf("%02X\t\t%s\n", opcode, mnemonics[opcode]);
-        } else if (opcode_bytes[opcode] == 2) {
-            printf("%02X %02X\t\t%s %02X\n", opcode, file_buffer[pc + 1],
-                    mnemonics[opcode], file_buffer[pc + 2]);
-        } else if (opcode_bytes[opcode] == 3) {
-            printf("%02X %02X %02X\t%s %04X\n", opcode, file_buffer[pc + 1],
-                    file_buffer[pc + 2], mnemonics[opcode], file_buffer[pc + 1] |
-                    (file_buffer[pc + 2] << 8));
+        int opcode = file_buf[pc];
+
+        switch (opcode_bytes[opcode]) {
+            case ONE_BYTE:
+                printf("%02X\t\t%s\n", opcode, mnemonics[opcode]);
+                break;
+            case TWO_BYTES:
+                printf("%02X %02X\t\t%s %02X\n", opcode, file_buf[pc + 1],
+                    mnemonics[opcode], file_buf[pc + 2]);
+                break;
+            case THREE_BYTES:
+                printf("%02X %02X %02X\t%s %04X\n", opcode, file_buf[pc + 1],
+                    file_buf[pc + 2], mnemonics[opcode], file_buf[pc + 1] |
+                    (file_buf[pc + 2] << 8));
+                break;
+            default:
+                break;
         }
 
         pc += opcode_bytes[opcode];

@@ -9,9 +9,9 @@
 
 #define NUM_GOOD_ARGS 2
 
-static unsigned get_file_size(char *filename);
-static char*    read_file(char *filename, unsigned file_size);
-static void     disassemble(char *file_buf, unsigned file_size);
+static unsigned get_file_size(const char *filename);
+static char*    read_file(const char *filename, const unsigned file_size);
+static void     disassemble(const char *buf, const unsigned file_size);
 
 int main(int argc, char* argv[])
 {
@@ -21,8 +21,8 @@ usage: %s filename\n", argv[0]);
         return EXIT_FAILURE;
     }
 
-    char *filename = argv[1];
-    int file_size = get_file_size(filename);
+    const char *filename = argv[1];
+    const int file_size = get_file_size(filename);
     if (file_size == EXIT_FAILURE) {
         return EXIT_FAILURE;
     }
@@ -39,7 +39,7 @@ usage: %s filename\n", argv[0]);
 }
 
 // Return size of file in bytes
-static unsigned get_file_size(char *filename)
+static unsigned get_file_size(const char *filename)
 {
     assert(filename);
 
@@ -51,14 +51,14 @@ static unsigned get_file_size(char *filename)
     }
 
     fseek(input_file, 0, SEEK_END);
-    int file_size = ftell(input_file);
+    const int file_size = ftell(input_file);
     fclose(input_file);
 
     return file_size;
 }
 
 // Read file into buffer and return buffer
-static char* read_file(char *filename, unsigned file_size)
+static char* read_file(const char *filename, const unsigned file_size)
 {
     assert(filename);
     assert(file_size > 0);
@@ -81,13 +81,20 @@ static char* read_file(char *filename, unsigned file_size)
 }
 
 // Disassemble 8080 opcodes and print to stdout
-static void disassemble(char *file_buf, unsigned file_size)
+static void disassemble(const char *buf, const const unsigned file_size)
 {
-    assert(file_buf);
+    #define OP(x)          (buf[pc + x])
+    #define MNEM(x)        (mnemonics[buf[pc + x]])
+    #define SIZE_OF_OPCODE (opcode_bytes[buf[pc]])
+    #define ONE_BYTE       1
+    #define TWO_BYTES      2
+    #define THREE_BYTES    3
+
+    assert(buf);
     assert(file_size > 0);
 
     // Mnemonics for all 8080 opcodes
-    const char *mnemonics[0x100] =
+    static const char *mnemonics[0x100] =
     {/*   0          1          2          3          4          5           6          7          8          9          A          b          c          d          e          f       */
      /*0*/"nop",     "lxi b",   "stax b",  "inx b",   "inr b",   "dcr b",    "mvi b",   "rlc",     "illegal", "dad b",   "ldax b",  "dcx b",   "inr c",   "dcr c",   "mvi c",   "rrc",
      /*1*/"illegal", "lxi d",   "stax d",  "inx d",   "inr d",   "dcr d",    "mvi d",   "ral",     "illegal", "dad d",   "ldax d",  "dcx d",   "inr e",   "dcr e",   "mvi e",   "rar",
@@ -108,7 +115,7 @@ static void disassemble(char *file_buf, unsigned file_size)
     };
 
     // Size (in bytes) of every 8080 opcode
-    const int opcode_bytes[0x100] =
+    static const int opcode_bytes[0x100] =
     {/*   0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F*/
      /*0*/1, 3, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
      /*1*/1, 3, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
@@ -128,32 +135,27 @@ static void disassemble(char *file_buf, unsigned file_size)
      /*F*/1, 1, 3, 1, 3, 1, 2, 1, 1, 1, 3, 1, 3, 3, 2, 1
     };
 
-    #define ONE_BYTE    1
-    #define TWO_BYTES   2
-    #define THREE_BYTES 3
-
     // Disassembly loop
-    int pc = 0;
-    while (pc < file_size) {
-        int opcode = file_buf[pc];
+    int pc;
+    for (pc = 0; pc < file_size; pc += SIZE_OF_OPCODE) {
 
-        switch (opcode_bytes[opcode]) {
+        switch (SIZE_OF_OPCODE) {
             case ONE_BYTE:
-                printf("%02X\t\t%s\n", opcode, mnemonics[opcode]);
+                printf("%02X\t\t%s\n", OP(0), MNEM(0));
                 break;
+
             case TWO_BYTES:
-                printf("%02X %02X\t\t%s %02X\n", opcode, file_buf[pc + 1],
-                    mnemonics[opcode], file_buf[pc + 2]);
+                printf("%02X %02X\t\t%s %02X\n", OP(0), OP(1), MNEM(0), OP(2));
                 break;
+
             case THREE_BYTES:
-                printf("%02X %02X %02X\t%s %04X\n", opcode, file_buf[pc + 1],
-                    file_buf[pc + 2], mnemonics[opcode], file_buf[pc + 1] |
-                    (file_buf[pc + 2] << 8));
+                printf("%02X %02X %02X\t%s %04X\n", OP(0), OP(1),
+                    OP(2), MNEM(0), OP(1) | (OP(2) << 8));
                 break;
+
             default:
                 break;
-        }
 
-        pc += opcode_bytes[opcode];
+        }
     }
 }

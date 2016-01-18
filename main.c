@@ -7,7 +7,13 @@
 #include <string.h>
 #include <assert.h>
 
-#define NUM_GOOD_ARGS 2
+#define OP(x)             (buf[pc + x])
+#define MNEM(x)           (mnemonics[buf[pc + x]])
+#define SIZE_OF_OPCODE(x) (opcode_bytes[buf[x]])
+#define ONE_BYTE          1
+#define TWO_BYTES         2
+#define THREE_BYTES       3
+#define NUM_GOOD_ARGS     2
 
 static unsigned get_file_size(const char *filename);
 static char*    read_file(const char *filename, const unsigned file_size);
@@ -46,13 +52,18 @@ static unsigned get_file_size(const char *filename)
     FILE *input_file = fopen(filename, "rb");
 
     if (!input_file) {
-        perror("Error ");
+        perror("Error: ");
         return EXIT_FAILURE;
     }
 
     fseek(input_file, 0, SEEK_END);
     const int file_size = ftell(input_file);
     fclose(input_file);
+
+    if (!file_size) {
+        fprintf(stderr, "Error: file size is 0 bytes\n");
+        return EXIT_FAILURE;
+    }
 
     return file_size;
 }
@@ -70,7 +81,7 @@ static char* read_file(const char *filename, const unsigned file_size)
     char *file_buf = calloc(file_size, sizeof(*file_buf));
     if (!file_buf) {
         fclose(input_file);
-        fprintf(stderr, "Error: cannot allocate buffer\n");
+        perror("Error: ");
         return NULL;
     }
 
@@ -83,13 +94,6 @@ static char* read_file(const char *filename, const unsigned file_size)
 // Disassemble 8080 opcodes and print to stdout
 static void disassemble(const char *buf, const const unsigned file_size)
 {
-    #define OP(x)          (buf[pc + x])
-    #define MNEM(x)        (mnemonics[buf[pc + x]])
-    #define SIZE_OF_OPCODE (opcode_bytes[buf[pc]])
-    #define ONE_BYTE       1
-    #define TWO_BYTES      2
-    #define THREE_BYTES    3
-
     assert(buf);
     assert(file_size > 0);
 
@@ -137,9 +141,9 @@ static void disassemble(const char *buf, const const unsigned file_size)
 
     // Disassembly loop
     int pc;
-    for (pc = 0; pc < file_size; pc += SIZE_OF_OPCODE) {
+    for (pc = 0; pc < file_size; pc += SIZE_OF_OPCODE(pc)) {
 
-        switch (SIZE_OF_OPCODE) {
+        switch (SIZE_OF_OPCODE(pc)) {
             case ONE_BYTE:
                 printf("%02X\t\t%s\n", OP(0), MNEM(0));
                 break;
@@ -155,7 +159,7 @@ static void disassemble(const char *buf, const const unsigned file_size)
 
             default:
                 break;
-
         }
+
     }
 }

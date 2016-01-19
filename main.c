@@ -14,6 +14,7 @@
 #define TWO_BYTES         2
 #define THREE_BYTES       3
 #define NUM_GOOD_ARGS     2
+#define ERROR             0
 
 static unsigned get_file_size(const char *filename);
 static char*    read_file(const char *filename, const unsigned file_size);
@@ -49,8 +50,6 @@ usage: %s filename\n", argv[0]);
 // Return size of file in bytes
 static unsigned get_file_size(const char *filename)
 {
-    static const int ERROR = 0;
-
     assert(filename);
 
     FILE *input_file = fopen(filename, "rb");
@@ -68,8 +67,6 @@ static unsigned get_file_size(const char *filename)
 // Read file into buffer and return buffer
 static char* read_file(const char *filename, const unsigned file_size)
 {
-    const char *ERROR = NULL;
-
     assert(filename);
     assert(file_size > 0);
 
@@ -145,24 +142,19 @@ static void disassemble(const char *buf, const unsigned file_size)
     // Disassembly loop
     static unsigned pc;
     for (pc = 0; pc < file_size; pc += SIZE_OF_OPCODE(pc)) {
-
         switch (SIZE_OF_OPCODE(pc)) {
             case ONE_BYTE:
                 printf("%02X\t\t%s\n", OP(0), MNEM(0));
                 break;
-
             case TWO_BYTES:
                 printf("%02X %02X\t\t%s %02X\n", OP(0), OP(1), MNEM(0), OP(2));
                 break;
-
             case THREE_BYTES:
                 printf("%02X %02X %02X\t%s %04X\n", OP(0), OP(1),
                     OP(2), MNEM(0), OP(1) | (OP(2) << 8));
                 break;
-
             default:
                 break;
         }
-
     }
 }

@@ -29,12 +29,14 @@ usage: %s filename\n", argv[0]);
 
     const char *filename = argv[1];
     const int file_size = get_file_size(filename);
-    if (file_size == EXIT_FAILURE) {
+    if (!file_size) {
+        fprintf(stderr, "Error: cannot open file or file is 0 bytes\n");
         return EXIT_FAILURE;
     }
 
     char *file_buf = read_file(filename, file_size);
     if (!file_buf) {
+        fprintf(stderr, "Error: cannot read file into buffer\n");
         return EXIT_FAILURE;
     }
 
@@ -47,23 +49,18 @@ usage: %s filename\n", argv[0]);
 // Return size of file in bytes
 static unsigned get_file_size(const char *filename)
 {
+    static const int ERROR = 0;
+
     assert(filename);
 
     FILE *input_file = fopen(filename, "rb");
-
     if (!input_file) {
-        perror("Error: ");
-        return EXIT_FAILURE;
+        return ERROR;
     }
 
     fseek(input_file, 0, SEEK_END);
-    const int file_size = ftell(input_file);
+    const unsigned file_size = ftell(input_file);
     fclose(input_file);
-
-    if (!file_size) {
-        fprintf(stderr, "Error: file size is 0 bytes\n");
-        return EXIT_FAILURE;
-    }
 
     return file_size;
 }
@@ -71,6 +68,8 @@ static unsigned get_file_size(const char *filename)
 // Read file into buffer and return buffer
 static char* read_file(const char *filename, const unsigned file_size)
 {
+    const char *ERROR = NULL;
+
     assert(filename);
     assert(file_size > 0);
 
@@ -81,18 +80,22 @@ static char* read_file(const char *filename, const unsigned file_size)
     char *file_buf = calloc(file_size, sizeof(*file_buf));
     if (!file_buf) {
         fclose(input_file);
-        perror("Error: ");
-        return NULL;
+        return ERROR;
     }
 
-    fread(file_buf, file_size, 1, input_file);
+    const unsigned bytes_read = fread(file_buf, file_size, 1, input_file);
     fclose(input_file);
+
+    if (bytes_read != file_size) {
+        free(file_buf);
+        return ERROR;
+    }
 
     return file_buf;
 }
 
 // Disassemble 8080 opcodes and print to stdout
-static void disassemble(const char *buf, const const unsigned file_size)
+static void disassemble(const char *buf, const unsigned file_size)
 {
     assert(buf);
     assert(file_size > 0);
@@ -140,7 +143,7 @@ static void disassemble(const char *buf, const const unsigned file_size)
     };
 
     // Disassembly loop
-    int pc;
+    static unsigned pc;
     for (pc = 0; pc < file_size; pc += SIZE_OF_OPCODE(pc)) {
 
         switch (SIZE_OF_OPCODE(pc)) {

@@ -7,14 +7,14 @@
 #include <string.h>
 #include <assert.h>
 
-#define OP(x)             (buf[pc + x])
-#define MNEM(x)           (mnemonics[buf[pc + x]])
-#define SIZE_OF_OPCODE(x) (opcode_bytes[buf[x]])
-#define ONE_BYTE          1
-#define TWO_BYTES         2
-#define THREE_BYTES       3
-#define NUM_GOOD_ARGS     2
-#define ERROR             0
+#define OP(x)                  (buf[pc + x])
+#define MNEM(x)                (mnemonics[buf[pc + x]])
+#define SIZE_OF_OPCODE(x)      (opcode_bytes[buf[x]])
+#define ONE_BYTE               1
+#define TWO_BYTES              2
+#define THREE_BYTES            3
+#define CORRECT_NUMBER_OF_ARGS 2
+#define ERROR                  0
 
 static unsigned get_file_size(const char *filename);
 static char*    read_file(const char *filename, const unsigned file_size);
@@ -22,13 +22,13 @@ static void     disassemble(const char *buf, const unsigned file_size);
 
 int main(int argc, char* argv[])
 {
-    if (argc != NUM_GOOD_ARGS) {
-        fprintf(stderr, "Intel 8080 Disassembler by Luke Zimmerer\n\
-usage: %s filename\n", argv[0]);
+    if (argc != CORRECT_NUMBER_OF_ARGS) {
+        fprintf(stderr, "usage: %s filename\n", argv[0]);
         return EXIT_FAILURE;
     }
 
     const char *filename = argv[1];
+    assert(filename);
     const int file_size = get_file_size(filename);
     if (!file_size) {
         fprintf(stderr, "Error: cannot open file or file is 0 bytes\n");

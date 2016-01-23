@@ -35,8 +35,6 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    printf("%d\n", file_size);
-
     char *file_buf = read_file(filename, file_size);
     if (!file_buf) {
         fprintf(stderr, "Error: cannot read file into buffer\n");

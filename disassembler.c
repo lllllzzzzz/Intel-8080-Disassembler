@@ -35,6 +35,8 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
+    printf("%d\n", file_size);
+
     char *file_buf = read_file(filename, file_size);
     if (!file_buf) {
         fprintf(stderr, "Error: cannot read file into buffer\n");
@@ -83,10 +85,12 @@ static char* read_file(const char *filename, const unsigned file_size)
     const unsigned bytes_read = fread(file_buf, file_size, 1, input_file);
     fclose(input_file);
 
+    /*
     if (bytes_read != file_size) {
         free(file_buf);
         return ERROR;
     }
+    */
 
     return file_buf;
 }

@@ -83,13 +83,6 @@ static char* read_file(const char *filename, const unsigned file_size)
     const unsigned bytes_read = fread(file_buf, file_size, 1, input_file);
     fclose(input_file);
 
-    /*
-    if (bytes_read != file_size) {
-        free(file_buf);
-        return ERROR;
-    }
-    */
-
     return file_buf;
 }
 

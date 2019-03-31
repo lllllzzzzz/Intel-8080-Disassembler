@@ -75,6 +75,7 @@ static char* read_file(const char *filename, const unsigned file_size)
     rewind(input_file);
 
     char *file_buf = calloc(file_size, sizeof(*file_buf));
+    assert(file_buf);
     if (!file_buf) {
         fclose(input_file);
         return ERROR;
